@@ -1,0 +1,6 @@
+---
+main: main.lua
+title: Melodo
+description: Play songs in this simple rhythm game, or record your own and challenge others.
+owner: revillo
+unlisted: true
