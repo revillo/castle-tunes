@@ -65,6 +65,20 @@ function updateSounds()
   end
 end
 
+local uimisc = {
+  decorateRecord = function(b, x, y, w, h)
+    local radius = 5;
+    --love.graphics.setColor({1, 0.1, 0.1, 1});
+    --love.graphics.circle("fill", x + 8, y + h * 0.5, radius);
+  end,
+  
+  buttonBackgroundColor = {0.1, 0.1, 0.1, 1.0},
+  
+  buttonTextColor = {1,1,1,1},
+  
+  buttonIndent = 14
+}
+
 function createFreeplayUI()
   UI.root:clear();
   
@@ -78,9 +92,13 @@ function createFreeplayUI()
     x = 100,
     y = 0,
     width = 60,
+    textIndent = uimisc.buttonIndent,
+--    backgroundColor = uimisc.buttonBackgroundColor,
+--    color = uimisc.buttonTextColor,
     onClick = function(b)
       recordSong();
-    end
+    end,
+    decorate = uimisc.decorateRecord
   });
   
   buttonBox:addElement(record);
@@ -91,12 +109,12 @@ function createRecordingUI()
   UI.root:clear();
   
   local buttonBox = UI.Box:new({
-    x = gfx.ox,
+    x = gfx.ox + 80,
     y = gfx.oy + gfx.lineY + 60
   });
   
   local finish = UI.Button:new({
-    text = "Submit",
+    text = "Post Song",
     x = 0,
     y = 0,
     width = 60,
@@ -111,14 +129,16 @@ function createRecordingUI()
     x = 100,
     y = 0,
     width = 60,
+    textIndent = uimisc.buttonIndent,
     onClick = function(b)
       recordSong();
-    end
+    end,
+    decorate = uimisc.decorateRecord
   });
   
   local freeplay = UI.Button:new({
     text = "Freeplay",
-    x = 200,
+    x = 300,
     y = 0,
     width = 60,
     onClick = function(b)
@@ -126,9 +146,20 @@ function createRecordingUI()
     end
   });
   
+  local listen = UI.Button:new({
+    text = "Listen",
+    x = 200,
+    y = 0,
+    width = 60,
+    onClick = function(b)
+      listenSong(gameState.notes);
+    end
+  });
+  
   buttonBox:addElement(finish);
   buttonBox:addElement(restart);
   buttonBox:addElement(freeplay);
+  buttonBox:addElement(listen);
   
   UI.root:addElement(buttonBox);
 end
@@ -137,20 +168,23 @@ function createPlaybackUI()
   UI.root:clear();
   
   local buttonBox = UI.Box:new({
-    x = gfx.ox,
+    x = gfx.ox + 80,
     y = gfx.oy + gfx.lineY + 60
   });
   
   local listen = UI.Button:new({
     text = "Listen",
-    x = 0,
+    x = 100,
     y = 0,
-    width = 60
+    width = 60,
+    onClick = function(b)
+      listenSong(gameState.notes);
+    end
   });
   
    local restart = UI.Button:new({
     text = "Retry",
-    x = 100,
+    x = 0,
     y = 0,
     width = 60,
     onClick = function(b)
@@ -159,27 +193,44 @@ function createPlaybackUI()
   });
   
    local record = UI.Button:new({
-    text = "Record New Song",
-    x = 200,
+    text = "Record New",
+    x = 180,
     y = 0,
     width = 100,
+    textIndent = uimisc.buttonIndent,
+    decorate = uimisc.decorateRecord,
     onClick = function(b)
       recordSong();
+    end
+  });
+  
+  local freeplay = UI.Button:new({
+    text = "Freeplay",
+    x = 300,
+    y = 0,
+    width = 60,
+    onClick = function(b)
+      freeplaySong();
     end
   });
   
   buttonBox:addElement(listen);
   buttonBox:addElement(restart);
   buttonBox:addElement(record);
+  buttonBox:addElement(freeplay);
   
   UI.root:addElement(buttonBox);
 
 end
 
 function resetState()
+  gameState.paused = false;
   gameState.songTime = 0.0;
   gameState.headStartDuration = 4.0;
   gameState.wiggleRoom = 0.2;
+  gameState.noteHitCount = 0;
+  gameState.noteMissCount = 0;
+  gameState.errorCount = 0;
   gameState.firstDrawIndex = 1;
   gameState.lastDrawIndex = 0;
   gameState.score = 0;
@@ -188,10 +239,16 @@ function resetState()
   audioState.pitchesPlaying = {};
   gameState.liveNotes = {};
   gameState.errors = {};
+  
+  for pitch in pairs(PITCH_NOTES) do
+     assets.audio["note"..PITCH_NOTES[pitch]]:fadeOut();
+  end
 end
 
-function loadSong(notes)
+function loadSong(notes, title)
   resetState();
+  
+  gameState.title = title or "Unititled";
   
   gameState.mode = GameMode.PLAYBACK;
   gameState.notes = notes;
@@ -203,13 +260,30 @@ function loadSong(notes)
   createPlaybackUI();
 end
 
+function listenSong(notes)
+  resetState();
+
+  gameState.notes = notes;
+  gameState.wiggleRoom = 0;
+  gameState.mode = GameMode.LISTEN;
+  
+end
+
+function pauseSong()
+  gameState.paused = true;
+end
+
+function unpauseSong()
+  gameState.paused = false;
+end
+
 function replaySong()
   loadSong(gameState.notes);
 end
 
 function freeplaySong()
   resetState();
-  
+  gameState.title = nil;
   gameState.mode = GameMode.FREEPLAY;
   
   createFreeplayUI();
@@ -219,7 +293,7 @@ function recordSong()
   resetState();
   gameState.notes = List.new(1);
   gameState.mode = GameMode.RECORD;
-  
+  gameState.title = "Unititled";
   createRecordingUI();
 end
 
@@ -237,6 +311,8 @@ function postSong(notes, title)
 end
 
 function displaySubmitPrompt()
+  
+  pauseSong();
   
   local prompt = UI.Box:new({
     x = gfx.ox + 100,
@@ -280,6 +356,7 @@ function displaySubmitPrompt()
     onClick = function()
       UI.root:removeElement(prompt);
       UI.root:unfocus();
+      unpauseSong();
     end
   });
   
@@ -291,8 +368,8 @@ function displaySubmitPrompt()
 end
 
 function finishRecording()
-    --loadSong(gameState.notes);
-    displaySubmitPrompt();
+    loadSong(gameState.notes, "untitled");
+    --displaySubmitPrompt();
 end
 
 
@@ -301,18 +378,34 @@ function client.load()
   setupAudio();
   
   if (not FromPost) then
-    freeplaySong();
+    --freeplaySong();
+    
+    gameState.notes = List.new(1);
+
+    for i = 1,50  do
+      local offset = i + math.random();
+
+      List.pushright(gameState.notes, {
+        startTime = offset,
+        endTime = offset + (0.25),
+        pitch = math.random(1,3)
+      });
+    end
+
+    loadSong(gameState.notes);
   end
 end
 
 function castle.postopened(post)
   
   FromPost = true;
-  loadSong(post.data.notes);
+  loadSong(post.data.notes, post.data.message);
   
 end
 
 function GamePlayer.update(gameState, dt)
+  
+  if gameState.paused then return end;
   
   if (gameState.mode == GameMode.PLAYBACK) then
     GamePlayer.updatePlayback(gameState, dt);
@@ -320,6 +413,8 @@ function GamePlayer.update(gameState, dt)
     GamePlayer.updateRecording(gameState, dt);
   elseif (gameState.mode == GameMode.FREEPLAY) then
     --GamePlayer.updateFreeplay(gameState, dt);
+  elseif (gameState.mode == GameMode.LISTEN) then
+    GamePlayer.updateListen(gameState, dt);
   end
   
   for pitch, info in pairs(gameState.inputs) do    
@@ -339,6 +434,35 @@ function GamePlayer.update(gameState, dt)
       audioState.pitchesPlaying[pitch] = nil;
     end  
   end
+end
+
+function GamePlayer.updateListen(gameState, dt)
+  
+  gameState.songTime = gameState.songTime + dt;
+  GamePlayer.scrollDown();
+  GamePlayer.findHotNotes();
+  
+  
+  --[[
+  for pitch, note in pairs(gameState.hotNotes) do
+    gameState.inputs[pitch] = {
+      state = 1
+    }
+  end
+  ]]
+  
+  for pitch in pairs(PITCH_NOTES) do
+    gameState.inputs[pitch] = gameState.inputs[pitch] or {};
+
+    if (gameState.hotNotes[pitch]) then
+      gameState.inputs[pitch].state = 1;
+    else
+      gameState.inputs[pitch].state = 0;
+    end
+    
+  end
+  
+
 end
 
 function GamePlayer.updateRecording(gameState, dt)
@@ -379,12 +503,10 @@ function GamePlayer.updateRecording(gameState, dt)
   
 end
 
-function GamePlayer.updatePlayback(gameState, dt)
-  
-  gameState.songTime = gameState.songTime + dt;
+function GamePlayer.scrollDown()
   local wig = gameState.wiggleRoom;
 
-  --Update which notes are displayed
+   --Update which notes are displayed
   local nextNote = gameState.notes[gameState.lastDrawIndex + 1];
   
   while(nextNote and nextNote.startTime <= gameState.songTime + gameState.headStartDuration) do
@@ -398,8 +520,12 @@ function GamePlayer.updatePlayback(gameState, dt)
     gameState.firstDrawIndex = gameState.firstDrawIndex + 1;
     firstNote = gameState.notes[gameState.firstDrawIndex];
   end
-  
-  -- Update score based on song and inputs
+end
+
+function GamePlayer.findHotNotes()
+  local wig = gameState.wiggleRoom;
+
+    -- Update score based on song and inputs
   gameState.hotNotes = {};
   local songT = gameState.songTime;
   
@@ -417,7 +543,18 @@ function GamePlayer.updatePlayback(gameState, dt)
     
   end
   
+end
+
+function GamePlayer.updatePlayback(gameState, dt)
+  
+  gameState.songTime = gameState.songTime + dt;
+
+  GamePlayer.scrollDown();
+  GamePlayer.findHotNotes();
+  
   gameState.errors = {};
+  
+  local songT = gameState.songTime;
   
   for pitch, info in pairs(gameState.inputs) do
     local hotNote = gameState.hotNotes[pitch];
@@ -429,8 +566,14 @@ function GamePlayer.updatePlayback(gameState, dt)
   
     if ((info.state == 1 and not hotNote) or (info.state == 0 and superHot)) then
       gameState.score = gameState.score - dt;
+      gameState.errorCount = gameState.errorCount + dt;
       gameState.errors[pitch] = 1;
     elseif (info.state == 1 and hotNote) then
+    
+      if (not hotNote.wasActive) then
+        gameState.noteHitCount = gameState.noteHitCount + 1;
+      end
+    
       hotNote.wasActive = true;
       gameState.score = gameState.score + dt;
     end     
@@ -517,21 +660,32 @@ end
 function drawUI(gfx)
   
   local y = gfx.oy + gfx.lineY + 60;
-  local x = gfx.ox;
+  local x = gfx.ox + 250;
   
   local st = gameState.songTime;
-  
-  --local displayTime = math.floor(gameState.songTime * 100) / 100.0;
-  --local seconds = math.floor(gameState.songTime);
-  --local minutes = math.floor(st / 60);
-  --local seconds = math.floor(st - minutes * 60);
   
   local displayTime = SecondsToClock(gameState.songTime);
   
   love.graphics.setColor(1,1,1,1);
   
+  if (gameState.mode ~= GameMode.FREEPLAY) then
+    love.graphics.print(gameState.title.." "..displayTime, 0, 0);
+  end
+  
+  if (gameState.mode == GameMode.PLAYBACK) then
+    local percentage = gameState.noteHitCount / (1 + gameState.notes.last - gameState.notes.first);
+    percentage = math.floor(percentage * 100);
+    love.graphics.print(" "..percentage.."%", gfx.ox - 70, gfx.oy + gfx.lineY - 80, 0, 1.5, 1.5);
+    
+    local errors = math.floor(gameState.errorCount * 3);
+    if (errors > 0) then
+      love.graphics.setColor(1, 0, 0, 1);
+      love.graphics.print("-"..errors, gfx.ox - 70, gfx.oy + gfx.lineY - 50, 0, 1.5, 1.5);
+    end
+  end
+  
   if (gameState.mode == GameMode.RECORD) then
-    --love.graphics.print(displayTime.."  Recording. Press SPACE to finish", x, y); 
+    --love.graphics.print(displayTime, x, y); 
   else
     --love.graphics.print(displayTime.."  Score: "..gameState.score, x, y);
   end

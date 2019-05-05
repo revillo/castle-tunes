@@ -36,7 +36,7 @@ function UIElement:init()
     self.children = {};
     self.backgroundColor = self.backgroundColor or DefaultBackgroundColor;
     self.color = self.color or DefaultTextColor;
-    self.textIndent = 5;
+    self.textIndent = self.textIndent or 5;
     
     UUID = UUID + 1;
 end
@@ -129,14 +129,18 @@ function UIElement:drawSelf()
     if (self.text) then
       love.graphics.print(self.text, x + self.textIndent, y + 2, 0, 1, 1);
     end
+    
+    if (self.decorate) then
+      self:decorate(x, y, w, h);
+    end
 end
 
 function Button:updateSelf(dt)
   x, y = love.mouse.getPosition();
   
-  if (self:isHover(x,y)) then
+  if (self:checkMouseOver(x,y)) then
     
-    if (not self.isHover and self.onMouseOver) then
+    if (not mouseOver and self.onMouseOver) then
       self:onMouseOver();
     end
     
@@ -212,7 +216,7 @@ function root:unfocus()
   self.activeTextBox = nil;
 end
 
-function Button:isHover(mx, my)
+function Button:checkMouseOver(mx, my)
   local x, y, w, h = self:getGlobalBounds();
 
   return mx > x and mx < (x + w)
@@ -263,7 +267,7 @@ end
 function TextBox:updateSelf(dt)
   Button.updateSelf(self, dt);
   
-  if (self.isHover) then
+  if (self.mouseOver) then
     root:requestCursor("ibeam");
   end
 end

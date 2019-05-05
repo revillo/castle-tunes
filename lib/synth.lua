@@ -4,6 +4,7 @@ local samplerate = 44100;
 local bitdepth = 16;
 local channels = 1;
 
+
 function Synth:new(properties) 
   
   local o = {};
@@ -14,7 +15,7 @@ function Synth:new(properties)
   o.soundData = love.sound.newSoundData( samplerate * 10, samplerate, bitdepth, channels );
   
   local samplesPerWave = samplerate / properties.frequency;
-  o.maxVolume = 0.01;
+  o.maxVolume = 0.2;
   o.volume = 0.0;
   
   for i = 1, samplerate * 10 do 
@@ -43,9 +44,11 @@ function Synth:update()
   ]]
   
   if (self.fadeTime) then
-    self.volume = self.volume / 1.1;
-  else
-    self.volume = math.min(self.maxVolume, self.volume + (self.maxVolume / 10)); 
+    self.volume = math.max(0.001, self.volume / 1.1);
+  elseif (self.playTime) then
+    local newVol = math.max(self.volume * 2, 0.001); 
+    self.volume = math.min(self.maxVolume, newVol); 
+    --self.volume = math.min(self.maxVolume, self.volume + (self.maxVolume / 10)); 
   end
   
   
@@ -54,13 +57,16 @@ end
 
 function Synth:fadeOut()
   self.fadeTime = love.timer.getTime();
+  self.playTime = nil;
 end
 
 function Synth:play()
   self.fadeTime = nil;
-  --self.playTime = love.timer.getTime();
+  self.playTime = love.timer.getTime();
+  
   local success = self.source:queue(self.soundData);
   self.source:play();
+  self.source:setVolume(self.volume);
 end
 
 
