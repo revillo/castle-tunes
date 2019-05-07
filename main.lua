@@ -401,6 +401,14 @@ end
 function castle.postopened(post)
   
   FromPost = true;
+  
+  local notes = post.data.notes;
+  
+  print("fl", notes.first, notes.last);
+  print("msg", post.message);
+  
+  print("ns", notes[notes.first].startTime);
+  
   loadSong(post.data.notes, post.data.message);
   
 end
