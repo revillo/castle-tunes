@@ -305,6 +305,7 @@ function postSong(notes, title)
           media = 'capture',
           data = {
               notes = gameState.notes,
+              title = title
           }
       }
   end)
@@ -406,10 +407,11 @@ function castle.postopened(post)
   
   print("fl", notes.first, notes.last);
   print("msg", post.message);
+  print("title", post.data.title);
   
   print("ns", notes[notes.first].startTime);
   
-  loadSong(post.data.notes, post.data.message);
+  loadSong(post.data.notes, post.data.title);
   
 end
 
