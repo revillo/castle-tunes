@@ -59,9 +59,9 @@ function setupAudio()
   end
 end
 
-function updateSounds()
+function updateAudio(dt)
   for i,mid in pairs(PITCH_NOTES) do
-    assets.audio["note"..mid]:update();
+    assets.audio["note"..mid]:update(dt);
   end
 end
 
@@ -368,8 +368,8 @@ function displaySubmitPrompt()
 end
 
 function finishRecording()
-    loadSong(gameState.notes, "untitled");
-    --displaySubmitPrompt();
+    --loadSong(gameState.notes, "untitled");
+    displaySubmitPrompt();
 end
 
 
@@ -378,8 +378,9 @@ function client.load()
   setupAudio();
   
   if (not FromPost) then
-    --freeplaySong();
+    freeplaySong();
     
+    --[[
     gameState.notes = List.new(1);
 
     for i = 1,50  do
@@ -393,6 +394,7 @@ function client.load()
     end
 
     loadSong(gameState.notes);
+    ]]
   end
 end
 
@@ -636,7 +638,7 @@ function drawKeys(gfx)
       
       if (gameState.errors[pitch]) then
         love.graphics.setColor(1,0,0,1);
-        love.graphics.circle("fill", x, y, size, size);
+        love.graphics.circle("fill", x + 5, y + 5, size, size);
       end
     end
   end
@@ -767,7 +769,7 @@ end
 function client.update(dt)
   
   GamePlayer.update(gameState, dt);
-  updateSounds();
+  updateAudio(dt);
   UI.root:update(dt);
   
 end
