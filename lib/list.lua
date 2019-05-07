@@ -42,7 +42,7 @@ end
 
 function List.each(list, fn)
   for i = list.first, list.last do
-    fn(list[i]);
+    fn(list[i], i);
   end
 end
 

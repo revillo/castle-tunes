@@ -253,8 +253,12 @@ function loadSong(notes, title)
   gameState.mode = GameMode.PLAYBACK;
   gameState.notes = notes;
   
-  List.each(notes, function(note)
-    note.wasActive = false;
+  List.each(notes, function(note, index)
+    if (note) then
+      note.wasActive = false;
+    else
+      print("bad note", index);
+    end
   end);
 
   createPlaybackUI();
@@ -409,9 +413,25 @@ function castle.postopened(post)
   print("msg", post.message);
   print("title", post.data.title);
   
-  print("ns", notes[notes.first].startTime);
+  --print("ns", notes[notes.first].startTime);
   
-  loadSong(post.data.notes, post.data.title);
+  for k,v in pairs(notes) do
+    
+    if type(v) == "table" then
+      notes[tonumber(k)] = v;
+    end
+    
+  --[[
+    print(k, v or "nil");
+    if type(v) == "table" then
+      for kk, vv in pairs(v) do
+        print(kk, vv or nil);
+      end
+    end
+    ]]
+  end
+  
+  loadSong(notes, post.data.title);
   
 end
 
