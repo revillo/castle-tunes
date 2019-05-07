@@ -3,4 +3,4 @@ main: main.lua
 title: Melodo
 description: Play songs in this simple rhythm game, or record your own and challenge others.
 owner: revillo
-unlisted: true
+coverImage: https://raw.githubusercontent.com/revillo/castle-tunes/master/cover.png
