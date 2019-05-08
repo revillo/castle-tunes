@@ -245,6 +245,16 @@ function resetState()
   end
 end
 
+function clearTempData(notes)
+  
+  List.each(notes, function(note, index)
+    if (note) then
+      note.wasActive = false;
+    end
+  end);
+
+end
+
 function loadSong(notes, title)
   resetState();
   
@@ -252,14 +262,8 @@ function loadSong(notes, title)
   
   gameState.mode = GameMode.PLAYBACK;
   gameState.notes = notes;
-  
-  List.each(notes, function(note, index)
-    if (note) then
-      note.wasActive = false;
-    else
-      print("bad note", index);
-    end
-  end);
+
+  clearTempData(notes);
 
   createPlaybackUI();
 end
@@ -268,6 +272,9 @@ function listenSong(notes)
   resetState();
 
   gameState.notes = notes;
+  
+  clearTempData(notes);
+  
   gameState.wiggleRoom = 0;
   gameState.mode = GameMode.LISTEN;
   
