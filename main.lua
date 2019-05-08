@@ -409,27 +409,13 @@ function castle.postopened(post)
   
   local notes = post.data.notes;
   
-  print("fl", notes.first, notes.last);
-  print("msg", post.message);
-  print("title", post.data.title);
-  
-  --print("ns", notes[notes.first].startTime);
-  
-  for k,v in pairs(notes) do
-    
-    if type(v) == "table" then
-      notes[tonumber(k)] = v;
-    end
-    
   --[[
-    print(k, v or "nil");
+  for k,v in pairs(notes) do
     if type(v) == "table" then
-      for kk, vv in pairs(v) do
-        print(kk, vv or nil);
-      end
+      notes.values[tonumber(k)] = v;
     end
-    ]]
   end
+  ]]
   
   loadSong(notes, post.data.title);
   
@@ -515,7 +501,7 @@ function GamePlayer.updateRecording(gameState, dt)
           pitch = pitch
         });
         
-        gameState.liveNotes[pitch] = gameState.notes[gameState.notes.last];
+        gameState.liveNotes[pitch] = gameState.notes.values[gameState.notes.last];
         
         gameState.lastDrawIndex = gameState.notes.last;
       end
@@ -526,11 +512,11 @@ function GamePlayer.updateRecording(gameState, dt)
     end
   end
   
-  local firstNote = gameState.notes[gameState.firstDrawIndex];
+  local firstNote = gameState.notes.values[gameState.firstDrawIndex];
   
   while(firstNote and firstNote.endTime > gameState.songTime + gameState.headStartDuration) do
     gameState.firstDrawIndex = gameState.firstDrawIndex + 1;
-    firstNote = gameState.notes[gameState.firstDrawIndex];
+    firstNote = gameState.notes.values[gameState.firstDrawIndex];
   end
   
 end
@@ -539,18 +525,18 @@ function GamePlayer.scrollDown()
   local wig = gameState.wiggleRoom;
 
    --Update which notes are displayed
-  local nextNote = gameState.notes[gameState.lastDrawIndex + 1];
+  local nextNote = gameState.notes.values[gameState.lastDrawIndex + 1];
   
   while(nextNote and nextNote.startTime <= gameState.songTime + gameState.headStartDuration) do
     gameState.lastDrawIndex = gameState.lastDrawIndex + 1;
-    nextNote = gameState.notes[gameState.lastDrawIndex + 1];
+    nextNote = gameState.notes.values[gameState.lastDrawIndex + 1];
   end
   
-  local firstNote = gameState.notes[gameState.firstDrawIndex];
+  local firstNote = gameState.notes.values[gameState.firstDrawIndex];
   
   while(firstNote and firstNote.endTime + wig < gameState.songTime) do
     gameState.firstDrawIndex = gameState.firstDrawIndex + 1;
-    firstNote = gameState.notes[gameState.firstDrawIndex];
+    firstNote = gameState.notes.values[gameState.firstDrawIndex];
   end
 end
 
@@ -563,7 +549,7 @@ function GamePlayer.findHotNotes()
   
   for noteIndex = gameState.firstDrawIndex, gameState.lastDrawIndex do
  
-    local note = gameState.notes[noteIndex];
+    local note = gameState.notes.values[noteIndex];
     --note.isActive = false;
 
     local key = PITCH_KEYS[note.pitch];
@@ -733,7 +719,7 @@ function drawNotes(gfx)
     
   for noteIndex = gameState.firstDrawIndex, gameState.lastDrawIndex do
   
-    local note = gameState.notes[noteIndex];    
+    local note = gameState.notes.values[noteIndex];    
     if note then drawNote(note, now, gfx) end;
     
   end
@@ -801,6 +787,6 @@ function client.update(dt)
   GamePlayer.update(gameState, dt);
   updateAudio(dt);
   UI.root:update(dt);
-  
+
 end
 
